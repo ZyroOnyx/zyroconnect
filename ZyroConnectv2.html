@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zyro Connect v2.3</title>
+    <style>
+        :root { 
+            --bg: #ffffff; --text: #000000; 
+            --red: #ff4d4d; --blue: #33a1ff; --green: #2ecc71; --yellow: #ffd933;
+            --border: 4px solid #000;
+            --shadow: 8px 8px 0px #000;
+        }
+        * { box-sizing: border-box; font-family: 'Inter', sans-serif; outline: none; }
+        body, html { margin: 0; padding: 0; background: var(--bg); height: 100%; overflow: hidden; }
+
+        /* --- AUTH SCREEN --- */
+        #auth-screen {
+            position: fixed; inset: 0; background: #fff; z-index: 10000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .hero-title { font-weight: 900; font-size: 3rem; letter-spacing: -4px; text-transform: uppercase; border-bottom: 10px solid #000; margin-bottom: 20px; }
+        .auth-box { border: var(--border); padding: 30px; box-shadow: var(--shadow); width: 350px; background: #fff; }
+        .auth-box input { width: 100%; padding: 12px; border: 3px solid #000; margin-bottom: 15px; font-weight: 800; }
+        
+        .btn { 
+            width: 100%; background: #000; color: #fff; border: 3px solid #000; padding: 12px; 
+            font-weight: 900; cursor: pointer; text-transform: uppercase; box-shadow: 4px 4px 0 #000;
+            margin-bottom: 10px; display: block; text-align: center; text-decoration: none;
+        }
+        .btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #000; }
+        .btn.white { background: #fff; color: #000; }
+        .btn.red { background: var(--red); color: #fff; }
+        .btn.green { background: var(--green); color: #fff; }
+
+        .accounts-list { width: 350px; margin-top: 20px; border: 3px solid #000; padding: 15px; max-height: 150px; overflow-y: auto; }
+        .acc-item { padding: 10px; border-bottom: 2px solid #000; cursor: pointer; font-weight: 900; display: flex; justify-content: space-between; }
+        .acc-item:last-child { border: none; }
+        
+        /* --- MAIN APP --- */
+        #app { display: none; height: 100vh; grid-template-columns: 320px 1fr; }
+        .sidebar { border-right: var(--border); display: flex; flex-direction: column; padding: 20px; background: #f0f0f0; }
+        .user-tag { font-weight: 900; font-size: 1.2rem; margin-bottom: 5px; }
+        .profile-id-tag { font-size: 0.8rem; background: #000; color: #fff; padding: 2px 8px; display: inline-block; margin-bottom: 20px; width: fit-content; font-weight: 900; }
+
+        .nav-tabs { display: flex; gap: 5px; margin-bottom: 15px; }
+        .tab-btn { flex: 1; border: 2px solid #000; background: #fff; font-weight: 900; cursor: pointer; padding: 8px; font-size: 0.75rem; text-transform: uppercase; }
+        .tab-btn.active { background: #000; color: #fff; }
+
+        .contact-list { flex: 1; overflow-y: auto; }
+        .contact-card { 
+            padding: 12px; border: 3px solid #000; background: #fff; margin-bottom: 10px; 
+            cursor: pointer; font-weight: 800; display: flex; justify-content: space-between; align-items: center;
+        }
+        .badge { background: var(--red); color: #fff; border-radius: 50%; width: 22px; height: 22px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; border: 2px solid #000; font-weight: 900; }
+
+        /* CHAT AREA */
+        .chat-main { display: flex; flex-direction: column; background: #fff; position: relative; }
+        .chat-header { padding: 20px; border-bottom: var(--border); font-weight: 900; font-size: 1.3rem; text-transform: uppercase; }
+        #messages-frame { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #fafafa; }
+        
+        .msg { max-width: 70%; padding: 12px; border: 3px solid #000; font-weight: 700; position: relative; box-shadow: 4px 4px 0 #000; cursor: pointer; user-select: none; }
+        .msg.me { align-self: flex-end; background: var(--blue); color: #fff; }
+        .msg.them { align-self: flex-start; background: #fff; color: #000; }
+        
+        /* CHAT FILE BLOCK COMPONENT */
+        .file-block {
+            display: flex; flex-direction: column; gap: 10px; padding: 15px; 
+            border: 3px solid #000; background: #fff; color: #000; width: 220px;
+            box-shadow: 4px 4px 0 #000; font-weight: 900; margin-top: 5px;
+        }
+        .file-icon-box {
+            font-size: 2.5rem; text-align: center; background: var(--yellow);
+            border: 3px solid #000; padding: 10px; margin-bottom: 2px;
+        }
+        .file-name-text {
+            font-size: 0.85rem; text-align: center; word-break: break-all;
+            text-transform: uppercase; letter-spacing: -0.5px;
+        }
+
+        /* INPUT BAR */
+        .chat-input-bar { border-top: var(--border); padding: 20px; display: flex; gap: 10px; background: #fff; }
+        #msg-input { flex: 1; padding: 15px; border: 3px solid #000; font-weight: 800; }
+
+        /* OVERLAYS */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 20000; display: none; align-items: center; justify-content: center; }
+        .modal { background: #fff; border: var(--border); padding: 30px; width: 400px; box-shadow: 10px 10px 0 #000; transform: scale(1); transition: 0.2s ease-in-out; }
+        .modal input { width: 100%; padding: 12px; border: 3px solid #000; font-weight: 800; margin-bottom: 15px; }
+
+        .req-item { border: 2px solid #000; padding: 10px; background: #fff; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; }
+    </style>
+</head>
+<body>
+
+    <!-- AUTHENTICATION SCREEN -->
+    <div id="auth-screen">
+        <div class="hero-title">ZYRO CONNECT</div>
+        <div class="auth-box">
+            <input type="text" id="auth-user" placeholder="USERNAME">
+            <input type="password" id="auth-pass" placeholder="PASSWORD">
+            <button class="btn" onclick="handleAuth('login')">LOGIN</button>
+            <button class="btn white" onclick="handleAuth('signup')">CREATE PROFILE</button>
+            <p id="auth-error" style="color:var(--red); font-weight:800; font-size:0.8rem; text-align:center;"></p>
+        </div>
+        <div class="accounts-list" id="saved-accounts">
+            <div style="font-weight:900; border-bottom:3px solid #000; margin-bottom:10px; font-size:0.8rem;">QUICK ACCESS ACCS:</div>
+            <div id="acc-render"></div>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="app">
+        <div class="sidebar">
+            <div class="user-tag" id="my-name">...</div>
+            <div class="profile-id-tag" id="my-id">ID: --</div>
+            
+            <div class="nav-tabs">
+                <button class="tab-btn active" id="tab-chats" onclick="switchView('chats')">Chats</button>
+                <button class="tab-btn" id="tab-reqs" onclick="switchView('reqs')">Invites (<span id="req-count">0</span>)</button>
+            </div>
+
+            <div class="contact-list" id="sidebar-content"></div>
+            <button class="btn white" style="font-size:0.75rem; margin-top:auto;" onclick="logout()">LOGOUT SYSTEM</button>
+        </div>
+
+        <div class="chat-main">
+            <div class="chat-header" id="chat-with-title">Select or Add a User via ID</div>
+            <div id="messages-frame"></div>
+            <div class="chat-input-bar">
+                <label style="background:var(--green); border:3px solid #000; padding:15px; cursor:pointer; font-weight:900; display:flex; align-items:center;">
+                    📎 <input type="file" id="file-input" style="display:none;" onchange="sendFile()">
+                </label>
+                <input type="text" id="msg-input" placeholder="Type message..." onkeydown="if(event.key==='Enter') sendText()">
+                <button class="btn" style="width:100px; margin:0;" onclick="sendText()">SEND</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REQUEST CONNECTION -->
+    <div class="overlay" id="modal-add">
+        <div class="modal">
+            <h2 style="font-weight:900; text-transform:uppercase; margin-top:0;">Request Connection</h2>
+            <input type="text" id="friend-id-input" placeholder="Target Profile ID (e.g. 11)">
+            <button class="btn green" onclick="sendFriendRequest()">Transmit Request</button>
+            <button class="btn white" onclick="closeModal('modal-add')">Abort</button>
+        </div>
+    </div>
+
+    <!-- MODAL: CENTERED WIPE/DELETE MESSAGE FRAME -->
+    <div class="overlay" id="modal-delete" style="display: none;">
+        <div class="modal" style="text-align: center;">
+            <h2 style="font-weight:900; text-transform:uppercase; margin-top:0; color:var(--red);">Wipe Message?</h2>
+            <p style="font-weight:800; font-size:0.95rem; margin-bottom:25px;">Are you sure you want to remove this data block from the server line?</p>
+            <button class="btn red" id="confirm-delete-btn">WIPE MESSAGE</button>
+            <button class="btn white" onclick="closeModal('modal-delete')" style="margin-bottom:0;">CANCEL</button>
+        </div>
+    </div>
+
+    <audio id="ping-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, getDocs, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc, arrayUnion, runTransaction, deleteDoc, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // !!! INSERT SYSTEM CONFIGURATION OBJECT HERE !!!
+const firebaseConfig = {
+  apiKey: "AIzaSyBqnEi9pWzm2nes2bB1yUcfuM8VF2LM1e8",
+  authDomain: "zyro-connect.firebaseapp.com",
+  projectId: "zyro-connect",
+  storageBucket: "zyro-connect.firebasestorage.app",
+  messagingSenderId: "259043360400",
+  appId: "1:259043360400:web:1dc9d58056608818832215",
+  measurementId: "G-NGWRSLZCTW"
+};
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let userData = null;
+        let activeChatId = null;
+        let currentTab = 'chats'; 
+        let chatListener = null;
+        let incomingRequests = [];
+        let holdTimer = null;
+        let msgToDelete = null;
+
+        function loadSavedWorkspaces() {
+            const list = JSON.parse(localStorage.getItem('zyro_accs') || '[]');
+            const render = document.getElementById('acc-render');
+            render.innerHTML = '';
+            list.forEach(acc => {
+                const div = document.createElement('div');
+                div.className = 'acc-item';
+                div.innerHTML = `<span>${acc.user}</span> <span>→</span>`;
+                div.onclick = () => {
+                    document.getElementById('auth-user').value = acc.user;
+                    document.getElementById('auth-pass').value = acc.pass;
+                    handleAuth('login');
+                };
+                render.appendChild(div);
+            });
+        }
+        loadSavedWorkspaces();
+
+        window.handleAuth = async (type) => {
+            const user = document.getElementById('auth-user').value.trim();
+            const pass = document.getElementById('auth-pass').value;
+            if(!user || !pass) return;
+
+            try {
+                if (type === 'signup') {
+                    const assignedId = await runTransaction(db, async (transaction) => {
+                        const metaRef = doc(db, "metadata", "users");
+                        const metaDoc = await transaction.get(metaRef);
+                        if(!metaDoc.exists()) {
+                            transaction.set(metaRef, { count: 1 });
+                            return 1;
+                        }
+                        const currentCount = Number(metaDoc.data().count) || 0;
+                        const nextId = currentCount + 1;
+                        transaction.update(metaRef, { count: nextId });
+                        return nextId;
+                    });
+
+                    const res = await createUserWithEmailAndPassword(auth, user + "@zyro.com", pass);
+                    await setDoc(doc(db, "users", res.user.uid), {
+                        username: user,
+                        profileId: Number(assignedId), 
+                        uid: res.user.uid,
+                        friends: []
+                    });
+                }
+                await signInWithEmailAndPassword(auth, user + "@zyro.com", pass);
+                let accs = JSON.parse(localStorage.getItem('zyro_accs') || '[]');
+                if(!accs.find(a => a.user === user)) {
+                    accs.push({user, pass});
+                    localStorage.setItem('zyro_accs', JSON.stringify(accs));
+                }
+            } catch (e) { document.getElementById('auth-error').innerText = e.message; }
+        };
+
+        window.logout = () => {
+            signOut(auth).then(() => { currentUser = null; location.reload(); });
+        };
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                onSnapshot(doc(db, "users", user.uid), (snapshot) => {
+                    userData = snapshot.data();
+                    document.getElementById('auth-screen').style.display = 'none';
+                    document.getElementById('app').style.display = 'grid';
+                    document.getElementById('my-name').innerText = userData.username.toUpperCase();
+                    document.getElementById('my-id').innerText = `ID: ${userData.profileId}`;
+                    renderSidebar();
+                });
+                listenForInvites();
+            }
+        });
+
+        function listenForInvites() {
+            const q = query(collection(db, "requests"), where("targetUid", "==", currentUser.uid), where("status", "==", "pending"));
+            onSnapshot(q, (snap) => {
+                incomingRequests = [];
+                snap.forEach(doc => { incomingRequests.push({ id: doc.id, ...doc.data() }); });
+                document.getElementById('req-count').innerText = incomingRequests.length;
+                if(currentTab === 'reqs') renderSidebar();
+            });
+        }
+
+        window.sendFriendRequest = async () => {
+            const targetInput = document.getElementById('friend-id-input').value.trim();
+            const parsedTargetId = Number(targetInput); 
+            if(isNaN(parsedTargetId) || targetInput === '') { alert("Please enter a valid numeric ID."); return; }
+            if(parsedTargetId === Number(userData.profileId)) { alert("Cannot connect with yourself."); return; }
+
+            const q = query(collection(db, "users"), where("profileId", "==", parsedTargetId));
+            const snap = await getDocs(q);
+            
+            if(!snap.empty) {
+                const targetUser = snap.docs[0].data();
+                const checkQ = query(collection(db, "requests"), where("senderUid", "==", currentUser.uid), where("targetUid", "==", targetUser.uid));
+                const checkSnap = await getDocs(checkQ);
+                
+                if(checkSnap.empty) {
+                    await addDoc(collection(db, "requests"), {
+                        senderUid: currentUser.uid,
+                        senderName: userData.username,
+                        targetUid: targetUser.uid,
+                        status: "pending"
+                    });
+                    alert(`Request sent to ID ${parsedTargetId}.`);
+                    closeModal('modal-add');
+                } else { alert("A pending link request already exists."); }
+            } else { alert(`ID ${parsedTargetId} does not exist.`); }
+        };
+
+        window.acceptInvite = async (req) => {
+            await updateDoc(doc(db, "users", currentUser.uid), { friends: arrayUnion(req.senderUid) });
+            await updateDoc(doc(db, "users", req.senderUid), { friends: arrayUnion(currentUser.uid) });
+            await deleteDoc(doc(db, "requests", req.id));
+            switchView('chats');
+        };
+
+        window.switchView = (tab) => {
+            currentTab = tab;
+            document.getElementById('tab-chats').className = `tab-btn ${tab === 'chats' ? 'active' : ''}`;
+            document.getElementById('tab-reqs').className = `tab-btn ${tab === 'reqs' ? 'active' : ''}`;
+            renderSidebar();
+        };
+
+        window.openGroupCreate = () => { document.getElementById('modal-add').style.display = 'flex'; };
+        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+
+        async function renderSidebar() {
+            const container = document.getElementById('sidebar-content');
+            container.innerHTML = '';
+
+            if (currentTab === 'reqs') {
+                if(incomingRequests.length === 0) {
+                    container.innerHTML = '<div style="font-size:0.8rem; font-weight:800; opacity:0.5; padding:10px;">NO INCOMING REQUESTS</div>';
+                    return;
+                }
+                incomingRequests.forEach(req => {
+                    const div = document.createElement('div');
+                    div.className = 'req-item';
+                    div.innerHTML = `<span>${req.senderName.toUpperCase()}</span><button class="btn green" style="width:auto; margin:0; padding:5px 10px; font-size:0.7rem;">ACCEPT</button>`;
+                    div.querySelector('button').onclick = () => acceptInvite(req);
+                    container.appendChild(div);
+                });
+            } else {
+                if(!userData.friends || userData.friends.length === 0) {
+                    container.innerHTML = '<button class="btn" onclick="openGroupCreate()">+ CONNECT TO USER BY ID</button>';
+                    return;
+                }
+                
+                userData.friends.forEach(async (fUid) => {
+                    const fDoc = await getDoc(doc(db, "users", fUid));
+                    if(!fDoc.exists()) return;
+                    const fData = fDoc.data();
+                    const chatId = [currentUser.uid, fUid].sort().join("_");
+                    
+                    const card = document.createElement('div');
+                    card.className = 'contact-card';
+                    card.innerHTML = `<span>${fData.username.toUpperCase()}</span> <div class="badge" id="badge-${chatId}" style="display:none">0</div>`;
+                    card.onclick = () => startChat(fUid, fData.username, chatId);
+                    container.appendChild(card);
+
+                    onSnapshot(query(collection(db, "chats", chatId, "messages"), where("sender", "!=", currentUser.uid)), (s) => {
+                        if(!s.empty && activeChatId !== chatId) {
+                            const unreadCount = s.docs.filter(doc => !doc.metadata.hasPendingWrites).length; 
+                            if(unreadCount > 0) {
+                                const b = document.getElementById(`badge-${chatId}`);
+                                if(b) { b.style.display = 'flex'; b.innerText = unreadCount; document.getElementById('ping-sound').play(); }
+                            }
+                        }
+                    });
+                });
+            }
+        }
+
+        function startChat(targetUid, name, chatId) {
+            activeChatId = chatId;
+            document.getElementById('chat-with-title').innerText = `Secure Feed: ${name}`;
+            const targetBadge = document.getElementById(`badge-${chatId}`);
+            if(targetBadge) targetBadge.style.display = 'none';
+            
+            if (chatListener) chatListener();
+
+            const q = query(collection(db, "chats", chatId, "messages"), orderBy("time", "asc"));
+            chatListener = onSnapshot(q, (snap) => {
+                const frame = document.getElementById('messages-frame');
+                frame.innerHTML = '';
+                snap.forEach(d => {
+                    const m = d.data();
+                    const div = document.createElement('div');
+                    div.className = `msg ${m.sender === currentUser.uid ? 'me' : 'them'}`;
+                    
+                    if (m.file) {
+                        // Custom Square Block Component UI for attached files
+                        div.innerHTML = `
+                            <div class="file-block">
+                                <div class="file-icon-box">📦</div>
+                                <div class="file-name-text">${m.fileName}</div>
+                                <a href="${m.file}" target="_blank" class="btn green" style="margin:0; padding:8px; font-size:0.75rem;">DOWNLOAD</a>
+                            </div>
+                        `;
+                    } else {
+                        div.innerHTML = `<div>${m.text}</div>`;
+                    }
+                    
+                    // Tap-and-Hold event listeners for desktop and mobile touch wrappers
+                    const triggerHold = () => { msgToDelete = d.id; document.getElementById('modal-delete').style.display = 'flex'; };
+                    div.onmousedown = () => { holdTimer = setTimeout(triggerHold, 700); };
+                    div.onmouseup = () => clearTimeout(holdTimer);
+                    div.ontouchstart = () => { holdTimer = setTimeout(triggerHold, 700); };
+                    div.ontouchend = () => clearTimeout(holdTimer);
+                    
+                    frame.appendChild(div);
+                });
+                frame.scrollTop = frame.scrollHeight;
+            });
+        }
+
+        document.getElementById('confirm-delete-btn').onclick = async () => {
+            if(activeChatId && msgToDelete) {
+                await deleteDoc(doc(db, "chats", activeChatId, "messages", msgToDelete));
+                closeModal('modal-delete');
+                msgToDelete = null;
+            }
+        };
+
+        window.sendText = async () => {
+            const input = document.getElementById('msg-input');
+            if (!input.value.trim() || !activeChatId) return;
+            await addDoc(collection(db, "chats", activeChatId, "messages"), {
+                text: input.value.trim(),
+                sender: currentUser.uid,
+                time: serverTimestamp()
+            });
+            input.value = '';
+        };
+
+        window.sendFile = async () => {
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            if(!file || !activeChatId) return;
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                // Using tmpfiles.org multi-part parsing pipeline 
+                const res = await fetch('https://tmpfiles.org/api/v1/upload', { method: 'POST', body: formData });
+                const result = await res.json();
+
+                if(res.ok && result.data?.url) {
+                    // Convert standard view link to direct raw download stream link
+                    const downloadLink = result.data.url.replace("tmpfiles.org/", "tmpfiles.org/dl/");
+                    
+                    await addDoc(collection(db, "chats", activeChatId, "messages"), {
+                        text: `Sent document file outline.`,
+                        file: downloadLink,
+                        fileName: file.name,
+                        sender: currentUser.uid,
+                        time: serverTimestamp()
+                    });
+                } else { alert("Upload server rejected the data block."); }
+            } catch(err) { alert("File upload pipeline failed."); }
+            fileInput.value = ''; 
+        };
+    </script>
+</body>
+</html>
